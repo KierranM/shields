@@ -28,6 +28,16 @@ try {
 var semver = require('semver');
 var serverStartTime = new Date((new Date()).toGMTString());
 
+var urls = require('./url-defaults.json');
+try {
+  var userUrls = require('./url-overrides.json');
+  for (var key in userUrls) {
+    if (userUrls.hasOwnProperty(key)) {
+      urls[key] = userUrls[key];
+    }
+  }
+} catch(e) { console.log('No user-defined URL overrides'); }
+
 var validTemplates = ['default', 'plastic', 'flat', 'flat-square', 'social'];
 var darkBackgroundTemplates = ['default', 'flat', 'flat-square'];
 var logos = loadLogos();
@@ -355,7 +365,7 @@ cache(function(data, match, sendBadge, request) {
   var format = match[4];
   var options = {
     method: 'HEAD',
-    uri: 'https://api.travis-ci.org/' + userRepo + '.svg',
+    uri: urls['travis'] + userRepo + '.svg',
   };
   if (branch != null) {
     options.uri += '?branch=' + branch;
@@ -395,7 +405,7 @@ cache(function(data, match, sendBadge, request) {
   var project = match[1];  // eg, 54d119db5ab6cc13528ab183
   var branch = match[2];
   var format = match[3];
-  var url = 'https://api.shippable.com/projects/' + project + '/badge';
+  var url = urls['shippable'] + project + '/badge';
   if (branch != null) {
     url += '?branchName=' + branch;
   }
@@ -433,7 +443,7 @@ cache(function(data, match, sendBadge, request) {
   var options = {
     method: 'GET',
     json: true,
-    uri: 'https://app.wercker.com/getbuilds/' + projectId + '?limit=1'
+    uri: urls['wercker'] + projectId + '?limit=1'
   };
   var badgeData = getBadgeData('build', data);
   request(options, function(err, res, json) {
@@ -474,7 +484,7 @@ cache(function(data, match, sendBadge, request) {
   var options = {
     method: 'GET',
     json: true,
-    uri: 'https://app.wercker.com/api/v3/applications/' + owner + '/' + application + '/builds?limit=1'
+    uri: urls['werckerV3'] + owner + '/' + application + '/builds?limit=1'
   };
   var badgeData = getBadgeData('build', data);
   request(options, function(err, res, json) {
@@ -554,7 +564,7 @@ cache(function (data, match, sendBadge, request) {
     }
   };
   var behavior = modes[mode];
-  var apiUrl = 'https://crates.io/api/v1/crates/' + crate;
+  var apiUrl = urls['crates'] + crate;
   if (version != null && behavior.version) {
     apiUrl += '/' + version;
   }
@@ -583,7 +593,7 @@ cache(function(data, match, sendBadge, request) {
   var repo = match[1];  // eg, `gruntjs/grunt`.
   var branch = match[2];
   var format = match[3];
-  var apiUrl = 'https://ci.appveyor.com/api/projects/' + repo;
+  var apiUrl = urls['appveyor'] + repo;
   if (branch != null) {
     apiUrl += '/branch/' + branch;
   }
@@ -646,7 +656,7 @@ camp.route(/^\/teamcity\/codebetter\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var buildType = match[1];  // eg, `bt428`.
   var format = match[2];
-  teamcity_badge('http://teamcity.codebetter.com', buildType, false, format, data, sendBadge);
+  teamcity_badge(urls['teamcity-codebetter-old'], buildType, false, format, data, sendBadge);
 }));
 
 // Generic TeamCity instance
@@ -665,7 +675,7 @@ camp.route(/^\/teamcity\/coverage\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var buildType = match[1];  // eg, `bt428`.
   var format = match[2];
-  var apiUrl = 'http://teamcity.codebetter.com/app/rest/builds/buildType:(id:' + buildType + ')/statistics?guest=1';
+  var apiUrl = urls['teamcity-codebetter'] + 'buildType:(id:' + buildType + ')/statistics?guest=1';
   var badgeData = getBadgeData('coverage', data);
   request(apiUrl, { headers: { 'Accept': 'application/json' } }, function(err, res, buffer) {
     if (err != null) {
@@ -815,7 +825,7 @@ camp.route(/^\/coverity\/scan\/(.+)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var projectId = match[1]; // eg, `3997`
   var format = match[2];
-  var url = 'https://scan.coverity.com/projects/' + projectId + '/badge.json';
+  var url = urls['coverity'] + projectId + '/badge.json';
   var badgeData = getBadgeData('coverity', data);
   request(url, function(err, res, buffer) {
     if (err != null) {
@@ -872,7 +882,7 @@ cache(function(data, match, sendBadge, request) {
     // https://api.ondemand.coverity.com/jobs/p4tmm8031t4i971r0im4s7lckk/badge
     //
 
-    var url = 'https://api.ondemand.coverity.com/' +
+    var url = urls['coverity-ondemand'] +
         badgeType + '/' + badgeTypeId + '/badge';
     request(url, function(err, res, buffer) {
       if (err != null) {
@@ -899,7 +909,7 @@ cache(function(data, match, sendBadge, request) {
   var format = match[3];
   if (type === '') { type = '/user'; }
   if (type === '/user') { user = '~' + user; }
-  var apiUrl = 'https://gratipay.com/' + user + '/public.json';
+  var apiUrl = urls['gratipay'] + user + '/public.json';
   var badgeData = getBadgeData('tips', data);
   if (badgeData.template === 'social') {
     badgeData.logo = badgeData.logo || logos.gratipay;
@@ -941,7 +951,7 @@ camp.route(/^\/libscore\/s\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var library = match[1];  // eg, `jQuery`.
   var format = match[2];
-  var apiUrl = 'http://api.libscore.com/v1/libraries/' + library;
+  var apiUrl = urls['libscore'] + library;
   var badgeData = getBadgeData('libscore', data);
   request(apiUrl, function dealWithData(err, res, buffer) {
     if (err != null) {
@@ -969,7 +979,7 @@ cache(function(data, match, sendBadge, request) {
   var team = match[1];  // eg, `mozilla-core`.
   var type = match[2];  // eg, `activity`.
   var format = match[3];
-  var url = 'https://api.bountysource.com/teams/' + team;
+  var url = urls['bountysource'] + team;
   var options = {
     headers: { 'Accept': 'application/vnd.bountysource+json; version=2' } };
   var badgeData = getBadgeData('bounties', data);
@@ -1000,7 +1010,7 @@ cache(function(data, match, sendBadge, request) {
   var user = match[1];  // eg, `symfony/symfony`.
   var branch = match[2];// eg, `/2.4.0.0`.
   var format = match[3];
-  var apiUrl = 'http://hhvm.h4cc.de/badge/' + user + '.json';
+  var apiUrl = urls['hhvm'] + user + '.json';
   if (branch) {
     // Remove the leading slash.
     apiUrl += '?branch=' + branch.slice(1);
@@ -1042,7 +1052,7 @@ cache(function(data, match, sendBadge, request) {
   var format = match[2];
   var options = {
     method: 'GET',
-    uri: 'https://insight.sensiolabs.com/api/projects/' + projectUuid,
+    uri: urls['sensiolabs'] + projectUuid,
     headers: {
       Accept: 'application/vnd.com.sensiolabs.insight+xml'
     }
@@ -1113,7 +1123,7 @@ cache(function(data, match, sendBadge, request) {
   var info = match[1];  // either `dm` or dt`.
   var userRepo = match[2];  // eg, `doctrine/orm`.
   var format = match[3];
-  var apiUrl = 'https://packagist.org/packages/' + userRepo + '.json';
+  var apiUrl = urls['packagist'] + userRepo + '.json';
   var badgeData = getBadgeData('downloads', data);
   if (userRepo.substr(-14) === '/:package_name') {
     badgeData.text[1] = 'invalid';
@@ -1155,7 +1165,7 @@ cache(function(data, match, sendBadge, request) {
   var info = match[1];  // either `v` or `vpre`.
   var userRepo = match[2];  // eg, `doctrine/orm`.
   var format = match[3];
-  var apiUrl = 'https://packagist.org/packages/' + userRepo + '.json';
+  var apiUrl = urls['packagist'] + userRepo + '.json';
   var badgeData = getBadgeData('packagist', data);
   if (userRepo.substr(-14) === '/:package_name') {
     badgeData.text[1] = 'invalid';
@@ -1237,7 +1247,7 @@ camp.route(/^\/packagist\/l\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var userRepo = match[1];
   var format = match[2];
-  var apiUrl = 'https://packagist.org/packages/' + userRepo + '.json';
+  var apiUrl = urls['packagist'] + userRepo + '.json';
   var badgeData = getBadgeData('license', data);
   if (userRepo.substr(-14) === '/:package_name') {
     badgeData.text[1] = 'invalid';
@@ -1348,7 +1358,7 @@ camp.route(/^\/npm\/dm\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var pkg = encodeURIComponent(match[1]);  // eg, "express" or "@user/express"
   var format = match[2];
-  var apiUrl = 'https://api.npmjs.org/downloads/point/last-month/' + pkg;
+  var apiUrl = urls['npm']['downloads-last-month'] + pkg;
   var badgeData = getBadgeData('downloads', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -1383,7 +1393,7 @@ camp.route(/^\/npm\/dt\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function (data, match, sendBadge, request) {
   var pkg = encodeURIComponent(match[1]);  // eg, "express" or "@user/express"
   var format = match[2];
-  var apiUrl = 'https://api.npmjs.org/downloads/range/1000-01-01:3000-01-01/' + pkg; // use huge range, will need to fix this in year 3000 :)
+  var apiUrl = urls['npm']['downloads-total'] + pkg; // use huge range, will need to fix this in year 3000 :)
   var badgeData = getBadgeData('downloads', data);
   request(apiUrl, function (err, res, buffer) {
     if (err != null) {
@@ -1419,7 +1429,7 @@ camp.route(/^\/npm\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var repo = encodeURIComponent(match[1]);  // eg, "express" or "@user/express"
   var format = match[2];
-  var apiUrl = 'https://registry.npmjs.org/-/package/' + repo + '/dist-tags';
+  var apiUrl = urls['npm']['registry'] + repo + '/dist-tags';
   var badgeData = getBadgeData('npm', data);
   // Using the Accept header because of this bug:
   // <https://github.com/npm/npmjs.org/issues/163>
@@ -1448,7 +1458,7 @@ camp.route(/^\/npm\/l\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var repo = encodeURIComponent(match[1]);  // eg, "express" or "@user/express"
   var format = match[2];
-  var apiUrl = 'http://registry.npmjs.org/' + repo + '/latest';
+  var apiUrl = urls['npm']['registry'] + repo + '/latest';
   var badgeData = getBadgeData('license', data);
   request(apiUrl, { headers: { 'Accept': '*/*' } }, function(err, res, buffer) {
     if (err != null) {
@@ -1479,7 +1489,7 @@ camp.route(/^\/node\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var repo = encodeURIComponent(match[1]);  // eg, "express" or "@user/express"
   var format = match[2];
-  var apiUrl = 'https://registry.npmjs.org/' + repo + '/latest';
+  var apiUrl = urls['npm']['registry'] + repo + '/latest';
   var badgeData = getBadgeData('node', data);
   // Using the Accept header because of this bug:
   // <https://github.com/npm/npmjs.org/issues/163>
@@ -1534,7 +1544,7 @@ cache(function(data, match, sendBadge, request) {
 
   var options = {
     method: 'GET',
-    uri: 'https://bintray.com/api/v1/packages/' + path + '/versions/_latest',
+    uri: urls['bintray'] + path + '/versions/_latest',
     headers: {
       Accept: 'application/json'
     }
@@ -1572,7 +1582,7 @@ camp.route(/^\/clojars\/v\/(.+)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var clojar = match[1];  // eg, `prismic` or `foo/bar`.
   var format = match[2];
-  var apiUrl = 'https://clojars.org/' + clojar + '/latest-version.json';
+  var apiUrl = urls['clojars'] + clojar + '/latest-version.json';
   var badgeData = getBadgeData('clojars', data);
   request(apiUrl, function(err, res, buffer) {
     if (err !== null) {
@@ -1598,7 +1608,7 @@ camp.route(/^\/gem\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var repo = match[1];  // eg, `formatador`.
   var format = match[2];
-  var apiUrl = 'https://rubygems.org/api/v1/gems/' + repo + '.json';
+  var apiUrl = urls['rubygems'] + 'gems/' + repo + '.json';
   var badgeData = getBadgeData('gem', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -1634,9 +1644,9 @@ cache(function(data, match, sendBadge, request) {
   var format = match[3];
   var badgeData = getBadgeData('downloads', data);
   if  (info === "dv"){
-    apiUrl = 'https://rubygems.org/api/v1/versions/' + repo + '.json';
+    apiUrl = urls['rubygems'] + 'versions/' + repo + '.json';
   } else {
-    var  apiUrl = 'https://rubygems.org/api/v1/gems/' + repo + '.json';
+    var  apiUrl = urls['rubygems'] + 'gems/' + repo + '.json';
   }
   var parameters = {
     headers: {
@@ -1697,7 +1707,7 @@ camp.route(/^\/gem\/u\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var user = match[1]; // eg, "raphink"
   var format = match[2];
-  var url = 'https://rubygems.org/api/v1/owners/' + user + '/gems.json';
+  var url = urls['rubygems'] + 'owners/' + user + '/gems.json';
   var badgeData = getBadgeData('gems', data);
   request(url, function(err, res, buffer) {
     if (err != null) {
@@ -1725,7 +1735,7 @@ cache(function(data, match, sendBadge, request) {
   var info = match[1]; // either rt or rd
   var repo = match[2]; // eg, "rspec-puppet-facts"
   var format = match[3];
-  var url = 'http://bestgems.org/api/v1/gems/' + repo;
+  var url = urls['bestgems'] + 'gems/' + repo;
   var totalRank = (info === 'rt');
   var dailyRank = (info === 'rd');
   if (totalRank) {
@@ -1765,7 +1775,7 @@ cache(function(data, match, sendBadge, request) {
   var info = match[1];
   var egg = match[2];  // eg, `gevent`, `Django`.
   var format = match[3];
-  var apiUrl = 'https://pypi.python.org/pypi/' + egg + '/json';
+  var apiUrl = urls['pypi'] + egg + '/json';
   var badgeData = getBadgeData('pypi', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -1928,7 +1938,7 @@ camp.route(/^\/pub\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var userRepo = match[1]; // eg, "box2d"
   var format = match[2];
-  var apiUrl = 'https://pub.dartlang.org/packages/' + userRepo + '.json';
+  var apiUrl = urls['dartspub'] + userRepo + '.json';
   var badgeData = getBadgeData('pub', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -1958,7 +1968,7 @@ cache(function(data, match, sendBadge, request) {
   var info = match[1];
   var repo = match[2];  // eg, `httpotion`.
   var format = match[3];
-  var apiUrl = 'https://hex.pm/api/packages/' + repo;
+  var apiUrl = urls['hexpm'] + repo;
   var badgeData = getBadgeData('hex', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -2018,7 +2028,7 @@ cache(function(data, match, sendBadge, request) {
   var branch = match[2];
   var format = match[3];
   var apiUrl = {
-    url: 'http://badge.coveralls.io/repos/' + userRepo + '/badge.png',
+    url: urls['coveralls'] + userRepo + '/badge.png',
     followRedirect: false,
     method: 'HEAD',
   };
@@ -2069,7 +2079,7 @@ cache(function(data, match, sendBadge, request) {
   var branch = match[3];
   var format = match[4];
   var apiUrl = {
-    url: 'https://codecov.io/' + userRepo + '/coverage.svg',
+    url: urls['codecov'] + userRepo + '/coverage.svg',
     followRedirect: false,
     method: 'HEAD',
   };
@@ -2119,7 +2129,7 @@ cache(function(data, match, sendBadge, request) {
   var format = match[2];
   var options = {
     method: 'HEAD',
-    uri: 'https://codeclimate.com/' + userRepo + '/coverage.png',
+    uri: urls['codeclimate'] + userRepo + '/coverage.png',
   };
   var badgeData = getBadgeData('coverage', data);
   request(options, function(err, res) {
@@ -2200,7 +2210,7 @@ cache(function(data, match, sendBadge, request) {
   var format = match[2];
   var options = {
     method: 'HEAD',
-    uri: 'https://codeclimate.com/' + userRepo + '.png',
+    uri: urls['codeclimate'] + userRepo + '.png',
   };
   var badgeData = getBadgeData('code climate', data);
   request(options, function(err, res) {
@@ -2254,7 +2264,7 @@ cache(function(data, match, sendBadge, request) {
     branch = repoParts.slice(slashesInRepo + 1).join('/');
     repo = repoParts.slice(0, slashesInRepo + 1).join('/');
   }
-  var apiUrl = 'https://scrutinizer-ci.com/api/repositories/' + repo;
+  var apiUrl = urls['scrutinizer'] + repo;
   var badgeData = getBadgeData('coverage', data);
   request(apiUrl, {}, function(err, res, buffer) {
     if (err !== null) {
@@ -2293,7 +2303,7 @@ cache(function(data, match, sendBadge, request) {
     branch = repoParts.slice(slashesInRepo + 1).join('/');
     repo = repoParts.slice(0, slashesInRepo + 1).join('/');
   }
-  var apiUrl = 'https://scrutinizer-ci.com/api/repositories/' + repo;
+  var apiUrl = urls['scrutinizer'] + repo;
   var badgeData = getBadgeData('build', data);
   request(apiUrl, {}, function(err, res, buffer) {
     if (err !== null) {
@@ -2341,7 +2351,7 @@ cache(function(data, match, sendBadge, request) {
     branch = repoParts.slice(slashesInRepo + 1).join('/');
     repo = repoParts.slice(0, slashesInRepo + 1).join('/');
   }
-  var apiUrl = 'https://scrutinizer-ci.com/api/repositories/' + repo;
+  var apiUrl = urls['scrutinizer'] + repo;
   var badgeData = getBadgeData('code quality', data);
   request(apiUrl, {}, function(err, res, buffer) {
     if (err !== null) {
@@ -2386,7 +2396,7 @@ cache(function(data, match, sendBadge, request) {
   // eg, `strongloop/express`, `webcomponents/generator-element`.
   var userRepo = match[2];
   var format = match[3];
-  var options = 'https://david-dm.org/' + userRepo + '/'
+  var options = urls['david'] + userRepo + '/'
     + (dev ? (dev + '-') : '') + 'info.json';
   var badgeData = getBadgeData( (dev? (dev+'D') :'d') + 'ependencies', data);
   request(options, function(err, res, buffer) {
@@ -2428,7 +2438,7 @@ camp.route(/^\/gemnasium\/(.+)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var userRepo = match[1];  // eg, `jekyll/jekyll`.
   var format = match[2];
-  var options = 'https://gemnasium.com/' + userRepo + '.svg';
+  var options = urls['gemnasium'] + userRepo + '.svg';
   var badgeData = getBadgeData('dependencies', data);
   request(options, function(err, res, buffer) {
     if (err != null) {
@@ -2466,7 +2476,7 @@ camp.route(/^\/versioneye\/d\/(.+)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var userRepo = match[1];  // eg, `ruby/rails`.
   var format = match[2];
-  var url = 'https://www.versioneye.com/' + userRepo + '/badge.svg';
+  var url = urls['versioneye'] + userRepo + '/badge.svg';
   var badgeData = getBadgeData('dependencies', data);
   fetchFromSvg(request, url, function(err, res) {
     if (err != null) {
@@ -2506,7 +2516,7 @@ cache(function(data, match, sendBadge, request) {
     queryParams.branch = branch;
   }
   var query = querystring.stringify(queryParams);
-  var url = 'https://www.codacy.com/project/badge/' + projectId + '?' + query;
+  var url = urls['codacy'] + projectId + '?' + query;
   var badgeData = getBadgeData('code quality', data);
   fetchFromSvg(request, url, function(err, res) {
     if (err != null) {
@@ -2548,7 +2558,7 @@ camp.route(/^\/hackage\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var repo = match[1];  // eg, `lens`.
   var format = match[2];
-  var apiUrl = 'https://hackage.haskell.org/package/' + repo + '/' + repo + '.cabal';
+  var apiUrl = urls['hackage']['version'] + repo + '/' + repo + '.cabal';
   var badgeData = getBadgeData('hackage', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -2584,7 +2594,7 @@ camp.route(/^\/hackage-deps\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var repo = match[1];  // eg, `lens`.
   var format = match[2];
-  var apiUrl = 'http://packdeps.haskellers.com/feed/' + repo;
+  var apiUrl = urls['hackage']['dependency-version'] + repo;
   var badgeData = getBadgeData('hackage-deps', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -2615,7 +2625,7 @@ cache(function(data, match, sendBadge, request) {
   var type = match[1];
   var spec = match[2];  // eg, AFNetworking
   var format = match[3];
-  var apiUrl = 'https://trunk.cocoapods.org/api/v1/pods/' + spec + '/specs/latest';
+  var apiUrl = urls['cocoapods']['version'] + spec + '/specs/latest';
   var badgeData = getBadgeData('pod', data);
   badgeData.colorscheme = null;
   request(apiUrl, function(err, res, buffer) {
@@ -2665,7 +2675,7 @@ camp.route(/^\/cocoapods\/metrics\/doc-percent\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var spec = match[1];  // eg, AFNetworking
   var format = match[2];
-  var apiUrl = 'http://metrics.cocoapods.org/api/v1/pods/' + spec;
+  var apiUrl = urls['cocoapods']['doc-percent'] + spec;
   var badgeData = getBadgeData('pod', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -2693,7 +2703,7 @@ cache(function(data, match, sendBadge, request) {
   var user = match[1];  // eg, strongloop/express
   var repo = match[2];
   var format = match[3];
-  var apiUrl = 'https://api.github.com/repos/' + user + '/' + repo + '/tags';
+  var apiUrl = urls['github']['repos'] + user + '/' + repo + '/tags';
   // Using our OAuth App secret grants us 5000 req/hour
   // instead of the standard 60 req/hour.
   if (serverSecrets) {
@@ -2736,7 +2746,7 @@ cache(function(data, match, sendBadge, request) {
   var user = match[1];  // eg, qubyte/rubidium
   var repo = match[2];
   var format = match[3];
-  var apiUrl = 'https://api.github.com/repos/' + user + '/' + repo + '/releases/latest';
+  var apiUrl = urls['github']['repos'] + user + '/' + repo + '/releases/latest';
   // Using our OAuth App secret grants us 5000 req/hour
   // instead of the standard 60 req/hour.
   if (serverSecrets) {
@@ -2780,7 +2790,7 @@ cache(function(data, match, sendBadge, request) {
   var repo = match[2];  // eg, subtitleedit
   var version = match[3];  // eg, 3.4.7
   var format = match[4];
-  var apiUrl = 'https://api.github.com/repos/' + user + '/' + repo + '/compare/' + version + '...master';
+  var apiUrl = urls['github']['repos'] + user + '/' + repo + '/compare/' + version + '...master';
   // Using our OAuth App secret grants us 5000 req/hour
   // instead of the standard 60 req/hour.
   if (serverSecrets) {
@@ -2831,7 +2841,7 @@ cache(function(data, match, sendBadge, request) {
     total = false;
   }
 
-  var apiUrl = 'https://api.github.com/repos/' + user + '/' + repo + '/releases';
+  var apiUrl = urls['github']['repos'] + user + '/' + repo + '/releases';
   if (!total) {
     var release_path = tag !== 'latest' ? 'tags/' + tag : 'latest';
     apiUrl = apiUrl + '/' + release_path;
@@ -2904,7 +2914,7 @@ cache(function(data, match, sendBadge, request) {
   var repo = match[3];  // eg, shields
   var ghLabel = match[4];  // eg, website
   var format = match[5];
-  var apiUrl = 'https://api.github.com/repos/' + user + '/' + repo;
+  var apiUrl = urls['github']['repos'] + user + '/' + repo;
   var issuesApi = false;  // Are we using the issues API instead of the repo one?
   var query = {};
   if (ghLabel !== undefined) {
@@ -2961,7 +2971,7 @@ cache(function(data, match, sendBadge, request) {
   var user = match[1];  // eg, qubyte/rubidium
   var repo = match[2];
   var format = match[3];
-  var apiUrl = 'https://api.github.com/repos/' + user + '/' + repo;
+  var apiUrl = urls['github']['repos'] + user + '/' + repo;
   // Using our OAuth App secret grants us 5000 req/hour
   // instead of the standard 60 req/hour.
   if (serverSecrets) {
@@ -2972,8 +2982,8 @@ cache(function(data, match, sendBadge, request) {
   if (badgeData.template === 'social') {
     badgeData.logo = badgeData.logo || logos.github;
     badgeData.links = [
-      'https://github.com/' + user + '/' + repo + '/fork',
-      'https://github.com/' + user + '/' + repo + '/network',
+      urls['github']['base'] + user + '/' + repo + '/fork',
+      urls['github']['base'] + user + '/' + repo + '/network',
      ];
   }
   // A special User-Agent is required:
@@ -3007,7 +3017,7 @@ cache(function(data, match, sendBadge, request) {
   var user = match[1];  // eg, qubyte/rubidium
   var repo = match[2];
   var format = match[3];
-  var apiUrl = 'https://api.github.com/repos/' + user + '/' + repo;
+  var apiUrl = urls['github']['repos'] + user + '/' + repo;
   // Using our OAuth App secret grants us 5000 req/hour
   // instead of the standard 60 req/hour.
   if (serverSecrets) {
@@ -3018,8 +3028,8 @@ cache(function(data, match, sendBadge, request) {
   if (badgeData.template === 'social') {
     badgeData.logo = badgeData.logo || logos.github;
     badgeData.links = [
-      'https://github.com/' + user + '/' + repo,
-      'https://github.com/' + user + '/' + repo + '/stargazers',
+      urls['github']['base'] + user + '/' + repo,
+      urls['github']['base'] + user + '/' + repo + '/stargazers',
      ];
   }
   // A special User-Agent is required:
@@ -3051,7 +3061,7 @@ cache(function(data, match, sendBadge, request) {
   var user = match[1];  // eg, qubyte/rubidium
   var repo = match[2];
   var format = match[3];
-  var apiUrl = 'https://api.github.com/repos/' + user + '/' + repo;
+  var apiUrl = urls['github']['repos'] + user + '/' + repo;
   // Using our OAuth App secret grants us 5000 req/hour
   // instead of the standard 60 req/hour.
   if (serverSecrets) {
@@ -3062,8 +3072,8 @@ cache(function(data, match, sendBadge, request) {
   if (badgeData.template === 'social') {
     badgeData.logo = badgeData.logo || logos.github;
     badgeData.links = [
-      'https://github.com/' + user + '/' + repo,
-      'https://github.com/' + user + '/' + repo + '/watchers',
+      urls['github']['base'] + user + '/' + repo,
+      urls['github']['base'] + user + '/' + repo + '/watchers',
      ];
   }
   // A special User-Agent is required:
@@ -3094,7 +3104,7 @@ camp.route(/^\/github\/followers\/([^\/]+)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var user = match[1];  // eg, qubyte
   var format = match[2];
-  var apiUrl = 'https://api.github.com/users/' + user;
+  var apiUrl = urls['github']['users'] + user;
   // Using our OAuth App secret grants us 5000 req/hour
   // instead of the standard 60 req/hour.
   if (serverSecrets) {
@@ -3134,7 +3144,7 @@ cache(function(data, match, sendBadge, request) {
   var user = match[1];  // eg, mashape
   var repo = match[2];  // eg, apistatus
   var format = match[3];
-  var apiUrl = 'https://api.github.com/repos/' + user + '/' + repo;
+  var apiUrl = urls['github']['repos'] + user + '/' + repo;
   var badgeData = getBadgeData('license', data);
   if (badgeData.template === 'social') {
     badgeData.logo = badgeData.logo || logos.github;
@@ -3217,7 +3227,7 @@ camp.route(/^\/cookbook\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var cookbook = match[1]; // eg, chef-sugar
   var format = match[2];
-  var apiUrl = 'https://supermarket.getchef.com/api/v1/cookbooks/' + cookbook + '/versions/latest';
+  var apiUrl = urls['chef-supermarket'] + 'cookbooks/' + cookbook + '/versions/latest';
   var badgeData = getBadgeData('cookbook', data);
 
   request(apiUrl, function(err, res, buffer) {
@@ -3480,13 +3490,23 @@ mapNugetFeed('nuget', 0, function(match) {
 
 // MyGet
 mapNugetFeed('(.+\\.)?myget\\/(.*)', 2, function(match) {
-  var tenant = match[1] || 'www.';  // eg. dotnet
+  var tenant = match[1] || urls['myget']['tenant'];  // eg. dotnet
   var feed = match[2];
   return {
     site: feed,
-    feed: 'https://' + tenant + 'myget.org/F/' + feed + '/api/v3'
+    feed: urls['myget']['scheme'] + tenant + urls['myget']['url'] + feed + urls['myget']['api_version']
   };
 });
+
+if (urls['generic-nuget'] != null) {
+  mapNugetFeed('(' + urls['generic-nuget'] + ')', 1, function(match) {
+    var site = urls['generic-nuget']
+    return {
+      site: site,
+      feed: site
+    };
+  });
+}
 
 // Puppet Forge modules
 camp.route(/^\/puppetforge\/([^\/]+)\/([^\/]+)\/([^\/]+)\.(svg|png|gif|jpg|json)$/,
@@ -3497,7 +3517,7 @@ cache(function(data, match, sendBadge, request) {
   var format = match[4];
   var options = {
     json: true,
-    uri: 'https://forgeapi.puppetlabs.com/v3/modules/' + user + '-' + module
+    uri: urls['puppetforge'] + 'modules/' + user + '-' + module
   };
   var badgeData = getBadgeData('puppetforge', data);
   request(options, function dealWithData(err, res, json) {
@@ -3563,7 +3583,7 @@ cache(function(data, match, sendBadge, request) {
   var format = match[3];
   var options = {
     json: true,
-    uri: 'https://forgeapi.puppetlabs.com/v3/users/' + user
+    uri: urls['puppetforge'] + 'users/' + user
   };
   var badgeData = getBadgeData('puppetforge', data);
   request(options, function dealWithData(err, res, json) {
@@ -3761,10 +3781,10 @@ cache(function(data, match, sendBadge, request) {
   var type = match[1];      // eg role
   var roleId = match[2];    // eg 3078
   var format = match[3];
-  var uri = 'https://galaxy.ansible.com/api/v1/roles/' + roleId + '/';
+  var uri = urls['ansible'] + roleId + '/';
   var options = {
     json: true,
-    uri: 'https://galaxy.ansible.com/api/v1/roles/' + roleId + '/',
+    uri: uri,
   };
   var badgeData = getBadgeData(type, data);
   request(options, function(err, res, json) {
@@ -3795,7 +3815,7 @@ cache(function(data, match, sendBadge, request) {
   var branch = match[2];
   var options = {
     method: 'GET',
-    uri: 'https://codeship.com/projects/' + projectId + '/status' + (branch != null ? '?branch=' + branch : '')
+    uri: urls['codeship'] + projectId + '/status' + (branch != null ? '?branch=' + branch : '')
   };
   var badgeData = getBadgeData('build', data);
   request(options, function(err, res) {
@@ -3900,7 +3920,7 @@ cache(function(data, match, sendBadge, request) {
   var artifactId = match[2]; // eg, `guice`
   var format = match[3] || "gif"; // eg, `guice`
   var query = "g:" + encodeURIComponent(groupId) + "+AND+a:" + encodeURIComponent(artifactId);
-  var apiUrl = 'https://search.maven.org/solrsearch/select?rows=1&q='+query;
+  var apiUrl = urls['maven'] + 'select?rows=1&q='+query;
   var badgeData = getBadgeData('maven-central', data);
   request(apiUrl, { headers: { 'Accept': 'application/json' } }, function(err, res, buffer) {
     if (err != null) {
@@ -3982,7 +4002,7 @@ cache(function(data, match, sendBadge, request) {
   var options = {
     method: 'GET',
     json: true,
-    uri: 'http://wheelmap.org/nodes/' + nodeId + '.json'
+    uri: urls['wheelmap'] + nodeId + '.json'
   };
   var badgeData = getBadgeData('wheelmap', data);
   request(options, function(err, res, json) {
@@ -4010,7 +4030,7 @@ camp.route(/^\/wordpress\/plugin\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var plugin = match[1];  // eg, `akismet`.
   var format = match[2];
-  var apiUrl = 'http://api.wordpress.org/plugins/info/1.0/' + plugin + '.json';
+  var apiUrl = urls['wordpress'] + plugin + '.json';
   var badgeData = getBadgeData('plugin', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -4041,7 +4061,7 @@ camp.route(/^\/wordpress\/plugin\/dt\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var plugin = match[1];  // eg, `akismet`.
   var format = match[2];
-  var apiUrl = 'http://api.wordpress.org/plugins/info/1.0/' + plugin + '.json';
+  var apiUrl = urls['wordpress'] + plugin + '.json';
   var badgeData = getBadgeData('downloads', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -4077,7 +4097,7 @@ camp.route(/^\/wordpress\/plugin\/r\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var plugin = match[1];  // eg, `akismet`.
   var format = match[2];
-  var apiUrl = 'http://api.wordpress.org/plugins/info/1.0/' + plugin + '.json';
+  var apiUrl = urls['wordpress'] + plugin + '.json';
   var badgeData = getBadgeData('rating', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -4114,7 +4134,7 @@ camp.route(/^\/wordpress\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var plugin = match[1];  // eg, `akismet`.
   var format = match[2];
-  var apiUrl = 'http://api.wordpress.org/plugins/info/1.0/' + plugin + '.json';
+  var apiUrl = urls['wordpress'] + plugin + '.json';
   var badgeData = getBadgeData('wordpress', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -4167,7 +4187,7 @@ cache(function(data, match, sendBadge, request) {
   var project = match[2];   // eg, 'sevenzip`.
   var folder = match[3];
   var format = match[4];
-  var apiUrl = 'http://sourceforge.net/projects/' + project + '/files/' + folder + '/stats/json';
+  var apiUrl = urls['sourceforge'] + project + '/files/' + folder + '/stats/json';
   var badgeData = getBadgeData('sourceforge', data);
   var time_period, start_date, end_date;
   if (info.charAt(0) === 'd') {
@@ -4219,7 +4239,7 @@ cache(function(data, match, sendBadge, request) {
   var userRepo = match[1];  // eg, `github/celery/celery`.
   var branch = match[2];
   var format = match[3];
-  var uri = 'https://requires.io/api/v1/status/' + userRepo
+  var uri = urls['requiresio'] + userRepo
   if (branch != null) {
     uri += '?branch=' + branch
   }
@@ -4264,7 +4284,7 @@ camp.route(/^\/apm\/dm\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var repo = match[1];  // eg, `vim-mode`.
   var format = match[2];
-  var apiUrl = 'https://atom.io/api/packages/' + repo;
+  var apiUrl = urls['apm'] + repo;
   var badgeData = getBadgeData('downloads', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -4290,7 +4310,7 @@ camp.route(/^\/apm\/v\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var repo = match[1];  // eg, `vim-mode`.
   var format = match[2];
-  var apiUrl = 'https://atom.io/api/packages/' + repo;
+  var apiUrl = urls['apm'] + repo;
   var badgeData = getBadgeData('apm', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -4317,7 +4337,7 @@ camp.route(/^\/apm\/l\/(.*)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var repo = match[1];  // eg, `vim-mode`.
   var format = match[2];
-  var apiUrl = 'https://atom.io/api/packages/' + repo;
+  var apiUrl = urls['apm'] + repo;
   var badgeData = getBadgeData('license', data);
   request(apiUrl, function(err, res, buffer) {
     if (err != null) {
@@ -4344,7 +4364,7 @@ camp.route(/^\/talk\/t\/([^\/]+)\.(svg|png|gif|jpg|json)$/,
 cache(function(data, match, sendBadge, request) {
   var roomHash = match[1];  // eg, 9c81ff703b
   var format = match[2];
-  var url = 'https://guest.talk.ai/api/rooms/' + roomHash;
+  var url = urls['talk'] + roomHash;
   var badgeData = getBadgeData('talk', data);
   request(url, function(err, res, buffer) {
     try {
@@ -4369,7 +4389,7 @@ cache(function(data, match, sendBadge, request) {
   var format = match[4];
 
   // Base API URL
-  var apiUrl = 'https://circleci.com/api/v1/project/' + userRepo;
+  var apiUrl = urls['circleci'] + userRepo;
 
   // Query Params
   queryParams = {};
@@ -4434,7 +4454,7 @@ cache(function(data, match, sendBadge, request) {
   var pkg = match[2]; // eg, Config-Augeas
   var format = match[3];
   var badgeData = getBadgeData('cpan', data);
-  var url = 'https://api.metacpan.org/v0/release/'+pkg;
+  var url = urls['cpan']+pkg;
   request(url, function(err, res, buffer) {
     if (err != null) {
       badgeData.text[1] = 'inaccessible';
@@ -4468,7 +4488,7 @@ cache(function(data, match, sendBadge, request) {
   var info = match[1]; // either `v` or `l`
   var pkg = match[2]; // eg, tex
   var format = match[3];
-  var url = 'http://www.ctan.org/json/pkg/' + pkg;
+  var url = urls['ctan'] + pkg;
   var badgeData = getBadgeData('ctan', data);
   request(url, function (err, res, buffer) {
     if (err != null) {
@@ -4509,7 +4529,7 @@ cache(function (data, match, sendBadge, request) {
   var pkg = match[2]; // package name, e.g. vibe-d
   var version = match[3]; // version (1.2.3 or latest)
   var format = match[4];
-  var apiUrl = 'http://code.dlang.org/api/packages/'+pkg;
+  var apiUrl = urls['dub']+pkg;
   if (version) {
     apiUrl += '/' + version;
   }
@@ -4563,7 +4583,7 @@ cache(function (data, match, sendBadge, request) {
   var info = match[1];  // (v - version, l - license)
   var pkg = match[2];  // package name, e.g. vibe-d
   var format = match[3];
-  var apiUrl = 'http://code.dlang.org/api/packages/' + pkg;
+  var apiUrl = urls['dub'] + pkg;
   if (info === 'v') {
     apiUrl += '/latest';
   } else if (info === 'l') {
@@ -4611,7 +4631,7 @@ cache(function(data, match, sendBadge, request) {
     user = 'library';
   }
   var path = user + '/' + repo;
-  var url = 'https://hub.docker.com/v2/repositories/' + path + '/stars/count/';
+  var url = urls['docker'] + path + '/stars/count/';
   var badgeData = getBadgeData('docker stars', data);
   request(url, function(err, res, buffer) {
     if (err != null) {
@@ -4642,7 +4662,7 @@ cache(function(data, match, sendBadge, request) {
     user = 'library';
   }
   var path = user + '/' + repo;
-  var url = 'https://hub.docker.com/v2/repositories/' + path;
+  var url = urls['docker'] + path;
   var badgeData = getBadgeData('docker pulls', data);
   request(url, function(err, res, buffer) {
     if (err != null) {
@@ -4672,13 +4692,13 @@ cache(function(data, match, sendBadge, request) {
   var format = match[3];
   var page = encodeURIComponent(scheme + '://' + path);
   // The URL API died: #568.
-  //var url = 'http://cdn.api.twitter.com/1/urls/count.json?url=' + page;
+  //var url = urls['twitter']['api']+'count.json?url=' + page;
   var badgeData = getBadgeData('tweet', data);
   if (badgeData.template === 'social') {
     badgeData.logo = badgeData.logo || logos.twitter;
     badgeData.links = [
-      'https://twitter.com/intent/tweet?text=Wow:&url=' + page,
-      'https://twitter.com/search?q=' + page,
+      urls['twitter']['badge-link-tweet'] + '?text=Wow:&url=' + page,
+      urls['twitter']['badge-link-search']+'?q=' + page,
      ];
   }
   badgeData.text[1] = '';
@@ -4733,7 +4753,7 @@ cache(function(data, match, sendBadge, request) {
   var userRepo = match[2];
   var branch = match[3];
   var format = match[4];
-  var url = 'https://snap-ci.com/' + userRepo + '/branch/' + branch + '/build_image.svg';
+  var url = urls['snapci'] + userRepo + '/branch/' + branch + '/build_image.svg';
 
   var badgeData = getBadgeData('build', data);
   fetchFromSvg(request, url, function(err, res) {

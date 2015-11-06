@@ -18,7 +18,7 @@
   "npm": {
     "downloads-last-month": "https://api.npmjs.org/downloads/point/last-month/",
     "downloads-total": "https://api.npmjs.org/downloads/range/1000-01-01:3000-01-01/",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/-/package/"
   },
   "bintray": "https://bintray.com/api/v1/packages/",
   "clojars": "https://clojars.org/",
@@ -49,11 +49,16 @@
     "base": "https://github.com/"
   },
   "chef-supermarket": "https://supermarket.getchef.com/api/v1/",
-  "myget": "https://www.myget.org/F/",
+  "myget": {
+    "url": "myget.org/F/",
+    "scheme": "https://",
+    "tenant": "www.",
+    "api_version": "/api/v3"
+  },
   "generic-nuget": null,
   "puppetforge": "https://forgeapi.puppetlabs.com/v3/",
   "ansible": "https://galaxy.ansible.com/api/v1/roles/",
-  "codeship": "https://www.codeship.io/projects/",
+  "codeship": "https://www.codeship.com/projects/",
   "maven": "https://search.maven.org/solrsearch/",
   "bower": null,
   "wheelmap": "http://wheelmap.org/nodes/",
@@ -66,7 +71,7 @@
   "cpan": "https://api.metacpan.org/v0/release/",
   "ctan": "http://www.ctan.org/json/pkg/",
   "dub": "http://code.dlang.org/api/packages/",
-  "docker": "https://registry.hub.docker.com/v2/repositories/",
+  "docker": "https://hub.docker.com/v2/repositories/",
   "twitter": {
     "api": "http://cdn.api.twitter.com/1/urls/",
     "badge-link-tweet": "https://twitter.com/intent/tweet",
