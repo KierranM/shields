@@ -1268,4 +1268,16 @@ function ajax(verb, adverbs, cb) {
   xhr.onerror = function (e) { cb(Error(xhr.statusText)); };
   xhr.send(null);
 }
+
+document.addEventListener('DOMContentLoaded', renameUrls);
+
+function renameUrls() {
+  var url = window.location;
+  var codeElements = document.getElementsByTagName('code');
+  for (var i = 0; i < codeElements.length; i++) {
+    if (~codeElements[i].innerText.indexOf('https://img.shields.io')) {
+      codeElements[i].innerText = codeElements[i].innerText.replace('https://img.shields.io', url.origin);
+    }
+  }
+}
 </script>
